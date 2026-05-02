@@ -1259,6 +1259,37 @@
     .histoire-grid, .equipe-grid, .contact-grid { gap: 60px; }
     .pick { gap: 60px; }
   }
+  /* Mobile menu open state */
+  .nav.is-open .nav-links {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: 0;
+    padding: 100px 40px 60px;
+    background: rgba(10,3,3,.97);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    z-index: 98;
+    align-items: center;
+    justify-content: center;
+    gap: 44px;
+    list-style: none;
+  }
+  .nav.is-open .nav-links a {
+    font-size: 1.6rem;
+    font-family: var(--serif);
+    letter-spacing: 0.04em;
+    color: var(--ivoire);
+  }
+  .nav.is-open .nav-cta {
+    display: none;
+  }
+  /* Burger → X animation */
+  .nav-burger span { transform-origin: center; }
+  .nav.is-open .nav-burger span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
+  .nav.is-open .nav-burger span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .nav.is-open .nav-burger span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+
   @media (max-width: 900px) {
     .nav-links, .nav-cta { display: none; }
     .nav-burger { display: block; }
@@ -1921,6 +1952,25 @@
         nav.classList.toggle('scrolled', self.scroll() > 60);
       }
     });
+
+    /* =========================================================
+       BURGER MENU — toggle mobile nav
+       ========================================================= */
+    const burger = document.querySelector('.nav-burger');
+    if (burger && nav) {
+      burger.addEventListener('click', () => {
+        const isOpen = nav.classList.toggle('is-open');
+        burger.setAttribute('aria-expanded', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+      });
+      document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+          nav.classList.remove('is-open');
+          document.body.style.overflow = '';
+          burger.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }
 
     /* =========================================================
        HERO entrance
