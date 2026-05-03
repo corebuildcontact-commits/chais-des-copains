@@ -1259,36 +1259,77 @@
     .histoire-grid, .equipe-grid, .contact-grid { gap: 60px; }
     .pick { gap: 60px; }
   }
-  /* Mobile menu open state */
-  .nav.is-open .nav-links {
-    display: flex;
-    flex-direction: column;
+  /* =========================================================
+     MOBILE MENU OVERLAY (séparé du nav pour éviter le bug
+     backdrop-filter / position:fixed)
+     ========================================================= */
+  .mobile-overlay {
+    display: none;
     position: fixed;
     inset: 0;
-    padding: 100px 40px 60px;
-    background: rgba(10,3,3,.97);
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    z-index: 98;
+    z-index: 99;
+    background: rgba(10,3,3,0.98);
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 44px;
+    gap: 48px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    opacity: 0;
+    transition: opacity .35s ease;
+  }
+  .mobile-overlay.is-open {
+    display: flex;
+    opacity: 1;
+  }
+  .mobile-overlay ul {
     list-style: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+    padding: 0;
+    margin: 0;
   }
-  .nav.is-open .nav-links a {
-    font-size: 1.6rem;
+  .mobile-overlay ul a {
     font-family: var(--serif);
-    letter-spacing: 0.04em;
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+    font-weight: 400;
     color: var(--ivoire);
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    position: relative;
+    transition: color .3s ease;
   }
-  .nav.is-open .nav-cta {
-    display: none;
+  .mobile-overlay ul a::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: -4px;
+    width: 0; height: 1px;
+    background: var(--or);
+    transition: width .4s ease;
   }
-  /* Burger → X animation */
+  .mobile-overlay ul a:hover { color: var(--or); }
+  .mobile-overlay ul a:hover::after { width: 100%; }
+  .mobile-cta {
+    font-family: var(--sans);
+    font-size: .82rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--or);
+    border: 1px solid var(--or);
+    padding: 14px 36px;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background .3s, color .3s;
+  }
+  .mobile-cta:hover { background: var(--or); color: var(--noir); }
+  /* Burger → X */
   .nav-burger span { transform-origin: center; }
-  .nav.is-open .nav-burger span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
-  .nav.is-open .nav-burger span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-  .nav.is-open .nav-burger span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+  .nav.menu-open .nav-burger span:nth-child(1) { transform: translateY(8.5px) rotate(45deg); }
+  .nav.menu-open .nav-burger span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .nav.menu-open .nav-burger span:nth-child(3) { transform: translateY(-8.5px) rotate(-45deg); }
 
   @media (max-width: 900px) {
     .nav-links, .nav-cta { display: none; }
@@ -1359,6 +1400,18 @@
     <button class="nav-burger" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
+
+<!-- Menu mobile plein écran (hors nav pour éviter le bug backdrop-filter) -->
+<div class="mobile-overlay" id="mobileOverlay" aria-hidden="true" role="dialog" aria-label="Menu">
+  <ul>
+    <li><a href="#univers">Univers</a></li>
+    <li><a href="#histoire">Histoire</a></li>
+    <li><a href="#boutique">Boutique</a></li>
+    <li><a href="#avis">Avis</a></li>
+    <li><a href="#contact">Nous trouver</a></li>
+  </ul>
+  <a href="#contact" class="mobile-cta">Nous rendre visite</a>
+</div>
 
 <!-- =========================================================
      SECTION HERO
@@ -1954,23 +2007,48 @@
     });
 
     /* =========================================================
-       BURGER MENU — toggle mobile nav
+       BURGER MENU — overlay séparé du nav
        ========================================================= */
-    const burger = document.querySelector('.nav-burger');
-    if (burger && nav) {
+    (function () {
+      const burger  = document.querySelector('.nav-burger');
+      const overlay = document.getElementById('mobileOverlay');
+      if (!burger || !overlay || !nav) return;
+
+      function openMenu() {
+        overlay.style.display = 'flex';
+        requestAnimationFrame(() => overlay.classList.add('is-open'));
+        nav.classList.add('menu-open');
+        burger.setAttribute('aria-expanded', 'true');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeMenu() {
+        overlay.classList.remove('is-open');
+        nav.classList.remove('menu-open');
+        burger.setAttribute('aria-expanded', 'false');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        // Cacher après la transition CSS (350ms)
+        setTimeout(() => {
+          if (!overlay.classList.contains('is-open')) overlay.style.display = 'none';
+        }, 380);
+      }
+
       burger.addEventListener('click', () => {
-        const isOpen = nav.classList.toggle('is-open');
-        burger.setAttribute('aria-expanded', isOpen);
-        document.body.style.overflow = isOpen ? 'hidden' : '';
+        overlay.classList.contains('is-open') ? closeMenu() : openMenu();
       });
-      document.querySelectorAll('.nav-links a').forEach(link => {
-        link.addEventListener('click', () => {
-          nav.classList.remove('is-open');
-          document.body.style.overflow = '';
-          burger.setAttribute('aria-expanded', 'false');
-        });
+
+      // Fermer en cliquant un lien
+      overlay.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', closeMenu);
       });
-    }
+
+      // Fermer avec Échap
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeMenu();
+      });
+    })();
 
     /* =========================================================
        HERO entrance
